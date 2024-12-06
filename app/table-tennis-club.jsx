@@ -117,10 +117,12 @@ export default function TableTennisClub() {
     (a, b) => b.wins / b.matches - a.wins / a.matches
   );
 
-  const topPlayersData = sortedPlayers.slice(0, 5).map((player) => ({
+  const topPlayersData = sortedPlayers.slice(0, 5).map((player, index) => ({
     name: player.name,
-    winRate: parseFloat(getWinRate(player)),
+    winRate: parseFloat(getWinRate(player)) || 50,
+    fill: `hsl(var(--chart-${index + 1}))`,
   }));
+  console.log(22, topPlayersData);
   const chartData = [
     { browser: "chrome", visitors: 275, fill: "var(--color-chrome)" },
     { browser: "safari", visitors: 200, fill: "var(--color-safari)" },
@@ -185,32 +187,27 @@ export default function TableTennisClub() {
           <CardDescription className="text-sm">승률 상위 5명</CardDescription>
         </CardHeader>
         <CardContent>
-          <ChartContainer config={chartConfig}>
+          <ChartContainer>
             <BarChart
               accessibilityLayer
-              data={chartData}
+              data={topPlayersData}
               layout="vertical"
               margin={{
                 left: 0,
               }}
             >
               <YAxis
-                dataKey="browser"
+                dataKey="name"
                 type="category"
                 tickLine={false}
                 tickMargin={10}
                 axisLine={false}
-                tickFormatter={(value) => chartConfig[value]?.label}
+                tickFormatter={(value) => value}
               />
-              <XAxis dataKey="visitors" type="number" hide />
-              <ChartTooltip
-                cursor={false}
-                content={<ChartTooltipContent hideLabel />}
-              />
-              <Bar dataKey="visitors" layout="vertical" radius={5}>
-                {" "}
+              <XAxis dataKey="winRate" type="number" hide />
+              <Bar dataKey="winRate" layout="vertical" radius={5}>
                 <LabelList
-                  dataKey="visitors"
+                  dataKey="winRate"
                   position="right"
                   offset={8}
                   className="fill-foreground"
@@ -426,7 +423,11 @@ export default function TableTennisClub() {
                           <TableCell className="text-sm">{wins}</TableCell>
                           <TableCell className="text-sm">{losses}</TableCell>
                           <TableCell className="text-sm">
-                            {((wins / (wins + losses)) * 100).toFixed(2)}%
+                            {wins + losses === 0
+                              ? "0%"
+                              : `${((wins / (wins + losses)) * 100).toFixed(
+                                  2
+                                )}%`}
                           </TableCell>
                         </TableRow>
                       ))}
