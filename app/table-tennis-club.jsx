@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import Image from "next/image";
+import { useState, useEffect, useRef } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 
 import {
   Card,
@@ -30,6 +30,7 @@ import {
   Pie,
   Cell,
   ResponsiveContainer,
+  LabelList,
   Legend,
   BarChart,
   Bar,
@@ -47,7 +48,9 @@ import {
 export default function TableTennisClub() {
   const [selectedPlayer, setSelectedPlayer] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
-  console.log(11111, selectedPlayer);
+  const [showAllPlayers, setShowAllPlayers] = useState(false);
+  const [showAllRecords, setShowAllRecords] = useState(false);
+
   const filteredPlayers = players.filter((player) =>
     player.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -83,11 +86,31 @@ export default function TableTennisClub() {
   const badges = ["indigo", "gray", "red"];
   const pieChartData = selectedPlayer
     ? [
-        { name: "승리", value: selectedPlayer.wins },
-        { name: "패배", value: selectedPlayer.matches - selectedPlayer.wins },
+        {
+          name: "승리",
+          value: selectedPlayer.wins,
+          fill: "#3b82f6",
+        },
+        {
+          name: "패배",
+          value: selectedPlayer.matches - selectedPlayer.wins,
+          fill: "#ef4444",
+        },
       ]
     : [];
-
+  const pieChartConfig = {
+    value: {
+      label: "value",
+    },
+    승리: {
+      label: "win",
+      color: "#4ade80",
+    },
+    패배: {
+      label: "lose",
+      color: "#fb923c",
+    },
+  };
   const COLORS = ["#4ade80", "#fb923c"];
 
   const sortedPlayers = [...players].sort(
@@ -130,6 +153,25 @@ export default function TableTennisClub() {
       color: "hsl(var(--chart-5))",
     },
   };
+
+  useEffect(() => {
+    if (selectedPlayer) {
+      window.scrollTo({
+        top: document.body.scrollHeight,
+        behavior: "smooth",
+      });
+    }
+  }, [selectedPlayer]);
+
+  const winRateRef = useRef(null);
+
+  const handlePlayerClick = (player) => {
+    setSelectedPlayer(player);
+    if (winRateRef.current) {
+      winRateRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  };
+
   return (
     <div className="container mx-auto p-4 max-w-[390px] min-h-screen">
       <div className="flex items-center mb-4 justify-center">
@@ -165,7 +207,16 @@ export default function TableTennisClub() {
                 cursor={false}
                 content={<ChartTooltipContent hideLabel />}
               />
-              <Bar dataKey="visitors" layout="vertical" radius={5} />
+              <Bar dataKey="visitors" layout="vertical" radius={5}>
+                {" "}
+                <LabelList
+                  dataKey="visitors"
+                  position="right"
+                  offset={8}
+                  className="fill-foreground"
+                  fontSize={12}
+                />
+              </Bar>
             </BarChart>
           </ChartContainer>
         </CardContent>
@@ -185,7 +236,7 @@ export default function TableTennisClub() {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full mb-3"
           />
-          <div className="overflow-x-auto">
+          <div>
             <Table>
               <TableHeader>
                 <TableRow>
@@ -196,49 +247,59 @@ export default function TableTennisClub() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredPlayers.map((player) => {
-                  const badge = badges[player.tier - 1];
-                  console.log(2232, badge);
-                  return (
-                    <TableRow
-                      key={player.id}
-                      className={`cursor-pointer hover:bg-gray-700 ${
-                        selectedPlayer?.id === player.id ? "bg-gray-700" : ""
-                      }`}
-                      onClick={() => setSelectedPlayer(player)}
-                    >
-                      <TableCell className="font-medium text-sm">
-                        {player.name}
-                        {player.tier == 1 && (
-                          <span class="ml-4 bg-[#00CCB7] text-[#190211] text-xs font-medium me-2 px-2.5 py-0.5 rounded-full dark:bg-red-900 dark:text-red-300">
-                            {player.badge}
-                          </span>
-                        )}
-                        {player.tier == 2 && (
-                          <span class="ml-4 bg-[#747FFF] text-[#190211] text-xs font-medium me-2 px-2.5 py-0.5 rounded-full dark:bg-indigo-900 dark:text-indigo-300">
-                            {" "}
-                            2티어
-                          </span>
-                        )}
-                        {player.tier == 3 && (
-                          <span class="ml-4 bg-[#FF52D9] text-[#190211] text-xs font-bold me-2 px-2.5 py-0.5 rounded-full dark:bg-pink-900 dark:text-pink-300">
-                            {" "}
-                            병아리
-                          </span>
-                        )}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {player.matches}
-                      </TableCell>
-                      <TableCell className="text-sm">{player.wins}</TableCell>
-                      <TableCell className="text-sm">
-                        {getWinRate(player)}%
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                {filteredPlayers
+                  .slice(0, showAllPlayers ? filteredPlayers.length : 5)
+                  .map((player) => {
+                    return (
+                      <TableRow
+                        key={player.id}
+                        className={`cursor-pointer hover:bg-gray-700 ${
+                          selectedPlayer?.id === player.id ? "bg-gray-700" : ""
+                        }`}
+                        onClick={() => handlePlayerClick(player)}
+                      >
+                        <TableCell className="font-medium text-sm">
+                          {player.name}
+                          {player.tier == 1 && (
+                            <span className="ml-4 bg-[#00CCB7] text-[#190211] text-xs font-medium me-2 px-2.5 py-0.5 rounded-full dark:bg-red-900 dark:text-red-300">
+                              {player.badge}
+                            </span>
+                          )}
+                          {player.tier == 2 && (
+                            <span className="ml-4 bg-[#747FFF] text-[#190211] text-xs font-medium me-2 px-2.5 py-0.5 rounded-full dark:bg-indigo-900 dark:text-indigo-300">
+                              2티어
+                            </span>
+                          )}
+                          {player.tier == 3 && (
+                            <span className="ml-4 bg-[#FF52D9] text-[#190211] text-xs font-bold me-2 px-2.5 py-0.5 rounded-full dark:bg-pink-900 dark:text-pink-300">
+                              병아리
+                            </span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {player.matches}
+                        </TableCell>
+                        <TableCell className="text-sm">{player.wins}</TableCell>
+                        <TableCell className="text-sm">
+                          {getWinRate(player)}%
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
               </TableBody>
             </Table>
+            <div
+              className="w-full flex justify-center mt-4 cursor-pointer"
+              onClick={() => setShowAllPlayers(!showAllPlayers)}
+            >
+              <div className="w-10 h-10 border border-gray-700 rounded-[10px] p-1 flex justify-center items-center">
+                {!showAllPlayers ? (
+                  <ChevronDown size={16} />
+                ) : (
+                  <ChevronUp size={16} />
+                )}
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -256,7 +317,7 @@ export default function TableTennisClub() {
             </CardHeader>
             <CardContent>
               <ChartContainer
-                config={chartConfig}
+                config={pieChartConfig}
                 className="mx-auto aspect-square max-h-[250px]"
               >
                 <PieChart>
@@ -265,11 +326,14 @@ export default function TableTennisClub() {
                     content={<ChartTooltipContent hideLabel />}
                   />
                   <Pie
-                    data={chartData}
-                    dataKey="visitors"
-                    nameKey="browser"
+                    data={pieChartData}
+                    dataKey="value"
+                    nameKey="name"
                     innerRadius={60}
                     strokeWidth={5}
+                    animationBegin={0}
+                    animationDuration={1500}
+                    isAnimationActive={!!selectedPlayer}
                   >
                     <Label
                       content={({ viewBox }) => {
@@ -311,7 +375,7 @@ export default function TableTennisClub() {
             </CardContent>
           </Card>
 
-          <Card className="bg-gray-800">
+          <Card className="">
             <CardHeader className="pb-2">
               <CardTitle className="text-lg">
                 {selectedPlayer.name}의 상대전적
@@ -322,7 +386,7 @@ export default function TableTennisClub() {
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
-                <Table className="text-gray-100">
+                <Table className="">
                   <TableHeader>
                     <TableRow>
                       <TableHead className="text-xs">상대</TableHead>
@@ -332,23 +396,29 @@ export default function TableTennisClub() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {getHeadToHeadRecords(selectedPlayer.id).map(
-                      ({ opponent, wins, losses }) => (
+                    {getHeadToHeadRecords(selectedPlayer.id)
+                      .slice(
+                        0,
+                        showAllRecords
+                          ? getHeadToHeadRecords(selectedPlayer.id).length
+                          : 5
+                      )
+                      .map(({ opponent, wins, losses }) => (
                         <TableRow key={opponent.id}>
                           <TableCell className="text-sm">
                             {opponent.name}
                             {opponent.tier == 1 && (
-                              <span class="ml-4 bg-[#00CCB7] text-[#190211] text-xs font-medium me-2 px-2.5 py-0.5 rounded-full dark:bg-red-900 dark:text-red-300">
+                              <span className="ml-4 bg-[#00CCB7] text-[#190211] text-xs font-medium me-2 px-2.5 py-0.5 rounded-full dark:bg-red-900 dark:text-red-300">
                                 1티어
                               </span>
                             )}
                             {opponent.tier == 2 && (
-                              <span class="ml-4 bg-[#747FFF] text-[#190211] text-xs font-medium me-2 px-2.5 py-0.5 rounded-full dark:bg-indigo-900 dark:text-indigo-300">
+                              <span className="ml-4 bg-[#747FFF] text-[#190211] text-xs font-medium me-2 px-2.5 py-0.5 rounded-full dark:bg-indigo-900 dark:text-indigo-300">
                                 2티어
                               </span>
                             )}
                             {opponent.tier == 3 && (
-                              <span class="ml-4 bg-[#FF52D9] text-[#190211] text-xs font-bold me-2 px-2.5 py-0.5 rounded-full dark:bg-pink-900 dark:text-pink-300">
+                              <span className="ml-4 bg-[#FF52D9] text-[#190211] text-xs font-bold me-2 px-2.5 py-0.5 rounded-full dark:bg-pink-900 dark:text-pink-300">
                                 병아리
                               </span>
                             )}
@@ -359,10 +429,23 @@ export default function TableTennisClub() {
                             {((wins / (wins + losses)) * 100).toFixed(2)}%
                           </TableCell>
                         </TableRow>
-                      )
-                    )}
+                      ))}
                   </TableBody>
                 </Table>
+                <div className="w-full flex justify-center mt-4 cursor-pointer">
+                  {getHeadToHeadRecords(selectedPlayer.id).length > 5 && (
+                    <div
+                      onClick={() => setShowAllRecords(!showAllRecords)}
+                      className="w-10 h-10 border border-gray-700 rounded-[10px] p-1 flex justify-center items-center"
+                    >
+                      {!showAllRecords ? (
+                        <ChevronDown size={16} />
+                      ) : (
+                        <ChevronUp size={16} />
+                      )}
+                    </div>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>
